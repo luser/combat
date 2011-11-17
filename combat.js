@@ -19,11 +19,6 @@ var players = [];
 var SCALE = 30;
 var WORLD_WIDTH = 640;
 var WORLD_HEIGHT = 480;
-var PLAYER_ACCEL = 10;
-var MAX_SPEED = 5;
-var MAX_SHOTS = 3;    // number of shots in play per-player
-var MAX_RICOCHET = 1; // number of times shots can bounce
-var FIRE_COOLDOWN = 500; // milliseconds between shots
 
 var   b2Vec2 = Box2D.Common.Math.b2Vec2
 ,  b2AABB = Box2D.Collision.b2AABB
@@ -174,12 +169,12 @@ Game.prototype = {
   beginContact: function beginContact(a, b) {
     if (a instanceof Bullet) {
       a.hits++;
-      if (a.hits == MAX_RICOCHET + 1 || b instanceof Player)
+      if (a.hits == Bullet.MAX_RICOCHET + 1 || b instanceof Player)
         a.dead = true;
     }
     if (b instanceof Bullet) {
       b.hits++;
-      if (b.hits == MAX_RICOCHET + 1 || a instanceof Player)
+      if (b.hits == Bullet.MAX_RICOCHET + 1 || a instanceof Player)
         b.dead = true;
     }
   }
@@ -200,6 +195,11 @@ function Player(body, radius, input) {
   this.syncPosition();
 }
 
+// Statics
+Player.ACCELERATION = 10;
+Player.MAX_SPEED = 5;
+Player.MAX_SHOTS = 3; // number of shots in play per-player
+Player.FIRE_COOLDOWN = 500; // milliseconds between shots
 Player.colors = ["#ff0000", "#00ff00", "#0000ff", "#ffff00", "#00ffff", "#ff00ff"];
 Player.nextColor = 0;
 
@@ -232,12 +232,12 @@ Player.prototype = {
 
   applyInput: function applyInput() {
     var speed = this.getSpeed();
-    if (this.keyState['forward'] && speed < MAX_SPEED) {
-      this.body.ApplyForce(this.getAngleVec(PLAYER_ACCEL),
+    if (this.keyState['forward'] && speed < Player.MAX_SPEED) {
+      this.body.ApplyForce(this.getAngleVec(Player.ACCELERATION),
                            this.body.GetWorldCenter());
     }
-    else if (this.keyState['back'] && speed < MAX_SPEED) {
-      this.body.ApplyForce(this.getAngleVec(-1 * PLAYER_ACCEL),
+    else if (this.keyState['back'] && speed < Player.MAX_SPEED) {
+      this.body.ApplyForce(this.getAngleVec(-1 * Player.ACCELERATION),
                            this.body.GetWorldCenter());
     }
     if (this.keyState['left']) {
@@ -249,7 +249,8 @@ Player.prototype = {
 
     if (this.keyState['fire']) {
       var now = Date.now();
-      if (this.lastFire + FIRE_COOLDOWN < now && this.numShots < MAX_SHOTS) {
+      if (this.lastFire + Player.FIRE_COOLDOWN < now &&
+          this.numShots < Player.MAX_SHOTS) {
         this.lastFire = now;
         this.fire();
       }
@@ -283,6 +284,8 @@ function Bullet(body, owner) {
   this.dead = false;
   this.syncPosition();
 }
+
+Bullet.MAX_RICOCHET = 1; // number of times shots can bounce
 
 Bullet.prototype ={
   toString: function() {
