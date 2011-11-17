@@ -215,11 +215,11 @@ Player.prototype = {
     if (this.input == 'key')
       return;
 
-    this.keyState['forward'] = (this.input.axes[1] + 0.1) < 0;
-    this.keyState['back'] = (this.input.axes[1] - 0.1) > 0;
-    this.keyState['left'] = (this.input.axes[0] + 0.1) < 0;
-    this.keyState['right'] = (this.input.axes[0] - 0.1) > 0;
-    this.keyState['fire'] = this.input.buttons[0];
+    this.keyState['forward'] = (this.input.axes.Left_Stick_Y + 0.1) < 0 || this.input.buttons.Pad_Up;
+    this.keyState['back'] = (this.input.axes.Left_Stick_Y - 0.1) > 0 || this.input.buttons.Pad_Down;
+    this.keyState['left'] = (this.input.axes.Left_Stick_X + 0.1) < 0 || this.input.buttons.Pad_Left;
+    this.keyState['right'] = (this.input.axes.Left_Stick_X - 0.1) > 0 || this.input.buttons.Pad_Right;
+    this.keyState['fire'] = this.input.buttons.A_Button || this.input.buttons.Right_Trigger_1;
   },
 
   applyInput: function applyInput() {
@@ -359,7 +359,13 @@ function addKeyboardPlayer(ev) {
 }
 
 function gamepadConnected(ev) {
-  game.addPlayer(ev.gamepad);
+  var gamepad;
+  try {
+    gamepad = new Input.Device(ev.gamepad);
+    game.addPlayer(gamepad);
+  } catch (ex) {
+    console.error(ex);
+  }
 }
 
 function gamepadDisconnected(ev) {
