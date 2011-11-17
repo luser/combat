@@ -33,12 +33,15 @@ var   b2Vec2 = Box2D.Common.Math.b2Vec2
 ,	b2MassData = Box2D.Collision.Shapes.b2MassData
 ,	b2PolygonShape = Box2D.Collision.Shapes.b2PolygonShape
 ,	b2CircleShape = Box2D.Collision.Shapes.b2CircleShape
+,	b2EdgeChainDef = Box2D.Collision.Shapes.b2EdgeChainDef
 ,	b2DebugDraw = Box2D.Dynamics.b2DebugDraw
 ,  b2MouseJointDef =  Box2D.Dynamics.Joints.b2MouseJointDef
 ;
 
-function Game(world) {
+function Game(world, width, height) {
   this.world = world;
+  this.width = width;
+  this.height = height;
   this.players = [];
   this.blocks = [];
 }
@@ -55,27 +58,44 @@ Game.prototype = {
 
     var x = opts.x || 0;
     var y = opts.y || 0;
-    var width = opts.width | 10;
-    var height = opts.height | 10;
+    var width = opts.width || 10;
+    var height = opts.height || 10;
     // positions the center of the object (not upper left!)
     bodyDef.position.x = (x + width/2) / SCALE;
     bodyDef.position.y = (y + height/2) / SCALE;
 
     fixDef.shape = new b2PolygonShape;
-    fixDef.shape.SetAsBox(width / SCALE, height / SCALE);
+    fixDef.shape.SetAsBox((width/2) / SCALE, (height/2) / SCALE);
     this.world.CreateBody(bodyDef).CreateFixture(fixDef);
     this.blocks.push(new Block(x, y, width, height));
   },
 
-  addWalls: function addWalls(width, height) {
+  addWalls: function addWalls() {
+    var fixDef = new b2FixtureDef;
+    fixDef.density = 1.0;
+    fixDef.friction = 0.5;
+    fixDef.restitution = 0.2;
+
+    var bodyDef = new b2BodyDef;
+    bodyDef.type = b2Body.b2_staticBody;
+    bodyDef.position.x = 0;
+    bodyDef.position.y = 0;
+    var body = world.CreateBody(bodyDef);
+
+    var wallShape = new b2PolygonShape();
+    fixDef.shape = wallShape;
     // top
-    this.addStaticBox({width: width, height: 3, x: 0, y: 0});
+    wallShape.SetAsEdge(new b2Vec2(0, this.height/SCALE), new b2Vec2(this.width/SCALE, this.height/SCALE));
+    body.CreateFixture(fixDef);
     // bottom
-    this.addStaticBox({width: width, height: 3, x: 0, y: height-3});
+    wallShape.SetAsEdge(new b2Vec2(0, 0), new b2Vec2(this.width/SCALE, 0));
+    body.CreateFixture(fixDef);
     // left
-    this.addStaticBox({width: 3, height: height, x: 0, y: 0});
+    wallShape.SetAsEdge(new b2Vec2(0, 0), new b2Vec2(0, this.height/SCALE));
+    body.CreateFixture(fixDef);
     // right
-    this.addStaticBox({width: 3, height: height, x: width-3, y: 0});
+    wallShape.SetAsEdge(new b2Vec2(this.width/SCALE, 0), new b2Vec2(this.width/SCALE, this.height/SCALE));
+    body.CreateFixture(fixDef);
   },
 
   addPlayer: function addPlayer() {
@@ -86,15 +106,14 @@ Game.prototype = {
 
     var bodyDef = new b2BodyDef;
     bodyDef.type = b2Body.b2_dynamicBody;
-    fixDef.shape = new b2CircleShape(
-      0.5 //radius
-    );
-    bodyDef.position.x = Math.random() * 25;
-    bodyDef.position.y = Math.random() * 10;
+    var radius = 0.5;
+    fixDef.shape = new b2CircleShape(radius);
+    bodyDef.position.x = (Math.random() * this.width) / SCALE;
+    bodyDef.position.y = (Math.random() * this.height) / SCALE;
     bodyDef.linearDamping = 10.0;
     bodyDef.angularDamping = Infinity;
     var body = world.CreateBody(bodyDef);
-    var player = new Player(body);
+    var player = new Player(body, radius*SCALE);
     body.CreateFixture(fixDef);
     body.SetUserData(player);
     this.players.push(player);
@@ -123,17 +142,21 @@ Game.prototype = {
   }
 };
 
-function Player(body) {
+function Player(body, radius) {
   this.body = body;
+  this.radius = radius;
   this.lastFire = 0;
   this.keyState = {'forward': false,
                   'back': false,
                   'left': false,
                   'right': false,
                   'fire': false};
-  this.color = "#ff0000";
+  this.color = Player.colors[Player.nextColor++];
   this.syncPosition();
 }
+
+Player.colors = ["#ff0000", "#00ff00", "#0000ff", "#ffff00", "#00ffff", "#ff00ff"];
+Player.nextColor = 0;
 
 Player.prototype = {
   getSpeed: function getSpeed() {
@@ -217,22 +240,22 @@ function spawnBullet(player) {
 }
 
 function init() {
-  world = new b2World(
-    new b2Vec2(0, 0)    // no gravity
-    ,  true                 //allow sleep
-  );
-  game = new Game(world);
+  world = new b2World(new b2Vec2(0, 0),    // no gravity
+                      true);                 //allow sleep
+  game = new Game(world, WORLD_WIDTH, WORLD_HEIGHT);
+  game.addWalls();
 
-  game.addWalls(WORLD_WIDTH, WORLD_HEIGHT);
-
+  // add some random boxes for variety
   for (var i = 0; i < 5; i++) {
     game.addStaticBox({width: 30, height: 30, x: Math.floor(Math.random()*(WORLD_WIDTH - 30)), y: Math.floor(Math.random()*(WORLD_HEIGHT - 30))});
   }
   game.addPlayer();
+  //game.addPlayer();
+  //game.addPlayer();
 
   renderer =
     //new DebugRenderer(world, WORLD_WIDTH, WORLD_HEIGHT);
-  new Canvas2DRenderer(world, WORLD_WIDTH, WORLD_HEIGHT);
+    new Canvas2DRenderer(world, WORLD_WIDTH, WORLD_HEIGHT);
 
   requestAnimFrame(update);
 }
