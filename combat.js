@@ -21,7 +21,9 @@ var WORLD_WIDTH = 640;
 var WORLD_HEIGHT = 480;
 var PLAYER_ACCEL = 10;
 var MAX_SPEED = 5;
-var FIRE_COOLDOWN = 500; // milliseconds
+var MAX_SHOTS = 3;    // number of shots in play per-player
+var MAX_RICOCHET = 1; // number of times shots can bounce
+var FIRE_COOLDOWN = 500; // milliseconds between shots
 
 var   b2Vec2 = Box2D.Common.Math.b2Vec2
 ,  b2AABB = Box2D.Collision.b2AABB
@@ -152,6 +154,7 @@ Game.prototype = {
     for (i = this.bullets.length - 1; i >= 0; i--) {
       if (this.bullets[i].dead) {
         this.world.DestroyBody(this.bullets[i].body);
+        this.bullets[i].owner.numShots--;
         this.bullets.splice(i, 1);
         continue;
       }
@@ -171,12 +174,12 @@ Game.prototype = {
   beginContact: function beginContact(a, b) {
     if (a instanceof Bullet) {
       a.hits++;
-      if (a.hits == 2 || b instanceof Player)
+      if (a.hits == MAX_RICOCHET + 1 || b instanceof Player)
         a.dead = true;
     }
     if (b instanceof Bullet) {
       b.hits++;
-      if (b.hits == 2 || a instanceof Player)
+      if (b.hits == MAX_RICOCHET + 1 || a instanceof Player)
         b.dead = true;
     }
   }
@@ -187,6 +190,7 @@ function Player(body, radius, input) {
   this.radius = radius;
   this.input = input;
   this.lastFire = 0;
+  this.numShots = 0;
   this.keyState = {'forward': false,
                   'back': false,
                   'left': false,
@@ -200,6 +204,10 @@ Player.colors = ["#ff0000", "#00ff00", "#0000ff", "#ffff00", "#00ffff", "#ff00ff
 Player.nextColor = 0;
 
 Player.prototype = {
+  toString: function toString() {
+    return "[Player]";
+  },
+
   getSpeed: function getSpeed() {
     return this.body.GetLinearVelocity().Length();
   },
@@ -241,7 +249,7 @@ Player.prototype = {
 
     if (this.keyState['fire']) {
       var now = Date.now();
-      if (this.lastFire + FIRE_COOLDOWN < now) {
+      if (this.lastFire + FIRE_COOLDOWN < now && this.numShots < MAX_SHOTS) {
         this.lastFire = now;
         this.fire();
       }
@@ -255,6 +263,7 @@ Player.prototype = {
   },
 
   fire: function() {
+    this.numShots++;
     spawnBullet(this);
   }
 };
@@ -267,18 +276,17 @@ function Block(x, y, width, height, color) {
   this.color = color || "#000000";
 };
 
-function Bullet(body) {
+function Bullet(body, owner) {
   this.body = body;
+  this.owner = owner;
   this.hits = 0;
   this.dead = false;
   this.syncPosition();
-  this.id = Bullet.id++;
 }
-Bullet.id = 0;
 
 Bullet.prototype ={
   toString: function() {
-    return "[Bullet " + this.id + "]";
+    return "[Bullet]";
   },
 
   syncPosition: function syncPosition() {
@@ -309,7 +317,7 @@ function spawnBullet(player) {
   var body = world.CreateBody(bodyDef);
   body.CreateFixture(fixDef);
   body.SetLinearVelocity(player.getAngleVec(10));
-  var bullet = new Bullet(body);
+  var bullet = new Bullet(body, player);
   body.SetUserData(bullet);
   game.bullets.push(bullet);
 }
