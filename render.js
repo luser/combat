@@ -27,8 +27,6 @@ function Canvas2DRenderer(b2world, width, height) {
   d.innerHTML = '<canvas width="'+width+'" height="'+height+'" style="background-color:#FFFFFF;"></canvas>';
   this.canvas = d.firstChild;
   this.ctx = this.canvas.getContext("2d");
-  //this.ctx.translate(0, this.height);
-  //this.ctx.scale(1.0, -1.0);
   document.body.appendChild(d);
 }
 
@@ -56,6 +54,15 @@ Canvas2DRenderer.prototype = {
       var v = p.getAngleVec(p.radius + 2);
       this.ctx.lineTo(p.x + v.x, p.y + v.y);
       this.ctx.stroke();
+    }
+
+    // Draw bullets
+    for (i = 0; i < game.bullets.length; i++) {
+      var b = game.bullets[i];
+      this.ctx.fillStyle = "black";
+      this.ctx.beginPath();
+      this.ctx.arc(b.x, b.y, 3, 0, Math.PI * 2);
+      this.ctx.fill();
     }
   }
 };

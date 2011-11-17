@@ -44,6 +44,14 @@ function Game(world, width, height) {
   this.height = height;
   this.players = [];
   this.blocks = [];
+  this.bullets = [];
+  var listener = new Box2D.Dynamics.b2ContactListener;
+  var self = this;
+  listener.BeginContact = function(contact) {
+    self.beginContact(contact.GetFixtureA().GetBody().GetUserData(),
+                      contact.GetFixtureB().GetBody().GetUserData());
+  };
+  this.world.SetContactListener(listener);
 }
 
 Game.prototype = {
@@ -98,7 +106,7 @@ Game.prototype = {
     body.CreateFixture(fixDef);
   },
 
-  addPlayer: function addPlayer() {
+  addPlayer: function addPlayer(input) {
     var fixDef = new b2FixtureDef;
     fixDef.density = 1.0;
     fixDef.friction = 0.5;
@@ -113,7 +121,7 @@ Game.prototype = {
     bodyDef.linearDamping = 10.0;
     bodyDef.angularDamping = Infinity;
     var body = world.CreateBody(bodyDef);
-    var player = new Player(body, radius*SCALE);
+    var player = new Player(body, radius*SCALE, input);
     body.CreateFixture(fixDef);
     body.SetUserData(player);
     this.players.push(player);
@@ -134,17 +142,44 @@ Game.prototype = {
     for (i = 0; i < this.players.length; i++) {
       this.players[i].syncPosition();
     }
+
+    for (i = this.bullets.length - 1; i >= 0; i--) {
+      if (this.bullets[i].dead) {
+        this.world.DestroyBody(this.bullets[i].body);
+        this.bullets.splice(i, 1);
+        continue;
+      }
+      this.bullets[i].syncPosition();
+    }
   },
 
   keyInput: function keyInput(inputName, pressed) {
-    //TODO: non-hardcoded
-    this.players[0].keyState[inputName] = pressed;
+    for (var i = 0; i < this.players.length; i++) {
+      if (this.players[i].input == 'key') {
+        this.players[i].keyState[inputName] = pressed;
+        break;
+      }
+    }
+  },
+
+  beginContact: function beginContact(a, b) {
+    if (a instanceof Bullet) {
+      a.hits++;
+      if (a.hits == 2 || b instanceof Player)
+        a.dead = true;
+    }
+    if (b instanceof Bullet) {
+      b.hits++;
+      if (b.hits == 2 || a instanceof Player)
+        b.dead = true;
+    }
   }
 };
 
-function Player(body, radius) {
+function Player(body, radius, input) {
   this.body = body;
   this.radius = radius;
+  this.input = input;
   this.lastFire = 0;
   this.keyState = {'forward': false,
                   'back': false,
@@ -215,28 +250,51 @@ function Block(x, y, width, height, color) {
   this.color = color || "#000000";
 };
 
+function Bullet(body) {
+  this.body = body;
+  this.hits = 0;
+  this.dead = false;
+  this.syncPosition();
+  this.id = Bullet.id++;
+}
+Bullet.id = 0;
+
+Bullet.prototype ={
+  toString: function() {
+    return "[Bullet " + this.id + "]";
+  },
+
+  syncPosition: function syncPosition() {
+    var d = this.body.GetDefinition();
+    this.x = d.position.x * SCALE;
+    this.y = d.position.y * SCALE;
+  }
+};
 
 function spawnBullet(player) {
   var fixDef = new b2FixtureDef;
-  fixDef.density = 1.0;
+  fixDef.density = 100.0;
   fixDef.friction = 0.5;
-  fixDef.restitution = 0.2;
+  fixDef.restitution = 0.9;
 
   var bodyDef = new b2BodyDef;
-  bodyDef.type = b2Body.b2_kinematicBody;
+  bodyDef.type = b2Body.b2_dynamicBody;
   bodyDef.bullet = true;
   fixDef.shape = new b2CircleShape(0.1);
 
   // Spawn just outside the player in the angle they're facing
   var pos = player.body.GetWorldCenter().Copy();
   var size = player.body.GetFixtureList().GetShape().GetRadius();
-  var vec = player.getAngleVec(size + 0.1);
+  var vec = player.getAngleVec(size + 0.2);
   pos.Add(vec);
   bodyDef.position.x = pos.x;
   bodyDef.position.y = pos.y;
   var body = world.CreateBody(bodyDef);
   body.CreateFixture(fixDef);
   body.SetLinearVelocity(player.getAngleVec(10));
+  var bullet = new Bullet(body);
+  body.SetUserData(bullet);
+  game.bullets.push(bullet);
 }
 
 function init() {
@@ -249,9 +307,6 @@ function init() {
   for (var i = 0; i < 5; i++) {
     game.addStaticBox({width: 30, height: 30, x: Math.floor(Math.random()*(WORLD_WIDTH - 30)), y: Math.floor(Math.random()*(WORLD_HEIGHT - 30))});
   }
-  game.addPlayer();
-  //game.addPlayer();
-  //game.addPlayer();
 
   renderer =
     //new DebugRenderer(world, WORLD_WIDTH, WORLD_HEIGHT);
@@ -279,6 +334,11 @@ function keyChange(ev) {
   }
 }
 
+function addKeyboardPlayer(ev) {
+  window.addEventListener("keydown", keyChange, true);
+  window.addEventListener("keyup", keyChange, true);
+  game.addPlayer('key');
+  document.body.removeChild(ev.target);
+}
+
 window.addEventListener("load", init, true);
-window.addEventListener("keydown", keyChange, true);
-window.addEventListener("keyup", keyChange, true);
