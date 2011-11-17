@@ -128,8 +128,14 @@ Game.prototype = {
     return player;
   },
 
+  removePlayer: function removePlayer(index) {
+    this.world.DestroyBody(this.players[index].body);
+    this.players.splice(index, 1);
+  },
+
   run: function run() {
     for (var i = 0; i < this.players.length; i++) {
+      this.players[i].checkInput();
       this.players[i].applyInput();
     }
     this.world.Step(
@@ -203,6 +209,17 @@ Player.prototype = {
     var v = new b2Vec2(Math.cos(a) * length,
                        Math.sin(a) * length);
     return v;
+  },
+
+  checkInput: function checkInput() {
+    if (this.input == 'key')
+      return;
+
+    this.keyState['forward'] = (this.input.axes[1] + 0.1) < 0;
+    this.keyState['back'] = (this.input.axes[1] - 0.1) > 0;
+    this.keyState['left'] = (this.input.axes[0] + 0.1) < 0;
+    this.keyState['right'] = (this.input.axes[0] - 0.1) > 0;
+    this.keyState['fire'] = this.input.buttons[0];
   },
 
   applyInput: function applyInput() {
@@ -341,4 +358,19 @@ function addKeyboardPlayer(ev) {
   document.body.removeChild(ev.target);
 }
 
+function gamepadConnected(ev) {
+  game.addPlayer(ev.gamepad);
+}
+
+function gamepadDisconnected(ev) {
+  for (var i = 0; i < game.players.length; i++) {
+    if (game.players[i].input == ev.gamepad) {
+      game.removePlayer(i);
+      break;
+    }
+  }
+}
+
 window.addEventListener("load", init, true);
+window.addEventListener("MozGamepadConnected", gamepadConnected, true);
+window.addEventListener("MozGamepadDisconnected", gamepadDisconnected, true);
