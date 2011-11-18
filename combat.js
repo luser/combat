@@ -113,8 +113,7 @@ Game.prototype = {
     bodyDef.type = b2Body.b2_dynamicBody;
     var radius = 0.5;
     fixDef.shape = new b2CircleShape(radius);
-    bodyDef.position.x = (Math.random() * this.width) / SCALE;
-    bodyDef.position.y = (Math.random() * this.height) / SCALE;
+    bodyDef.position = this.getRandomPosition();
     bodyDef.linearDamping = 10.0;
     bodyDef.angularDamping = Infinity;
     var body = world.CreateBody(bodyDef);
@@ -123,6 +122,11 @@ Game.prototype = {
     body.SetUserData(player);
     this.players.push(player);
     return player;
+  },
+
+  getRandomPosition: function getRandomPosition() {
+    return new b2Vec2((Math.random() * this.width) / SCALE,
+                      (Math.random() * this.height) / SCALE);
   },
 
   removePlayer: function removePlayer(index) {
@@ -143,7 +147,9 @@ Game.prototype = {
     this.world.ClearForces();
 
     for (i = 0; i < this.players.length; i++) {
-      this.players[i].syncPosition();
+      var p = this.players[i];
+      p.syncPosition();
+      p.checkSpin();
     }
 
     for (i = this.bullets.length - 1; i >= 0; i--) {
@@ -169,13 +175,29 @@ Game.prototype = {
   beginContact: function beginContact(a, b) {
     if (a instanceof Bullet) {
       a.hits++;
-      if (a.hits == Bullet.MAX_RICOCHET + 1 || b instanceof Player)
+      if (a.hits == Bullet.MAX_RICOCHET + 1) {
         a.dead = true;
+      }
+      if (b instanceof Player) {
+        a.dead = true;
+        b.hit();
+        if (a.owner != b) {
+          a.owner.score++;
+        }
+      }
     }
     if (b instanceof Bullet) {
       b.hits++;
-      if (b.hits == Bullet.MAX_RICOCHET + 1 || a instanceof Player)
+      if (b.hits == Bullet.MAX_RICOCHET + 1) {
         b.dead = true;
+      }
+      if (a instanceof Player) {
+        b.dead = true;
+        a.hit();
+        if (b.owner != a) {
+          b.owner.score++;
+        }
+      }
     }
   }
 };
@@ -184,8 +206,12 @@ function Player(body, radius, input) {
   this.body = body;
   this.radius = radius;
   this.input = input;
+  this.score = 0;
   this.lastFire = 0;
   this.numShots = 0;
+  this.health = Player.HEALTH;
+  this.spinning = false;
+  this.spinEnd = 0;
   this.keyState = {'forward': false,
                   'back': false,
                   'left': false,
@@ -197,9 +223,11 @@ function Player(body, radius, input) {
 
 // Statics
 Player.ACCELERATION = 10;
+Player.HEALTH = 1;
 Player.MAX_SPEED = 5;
 Player.MAX_SHOTS = 3; // number of shots in play per-player
 Player.FIRE_COOLDOWN = 500; // milliseconds between shots
+Player.SPIN_TIME = 1500;
 Player.colors = ["#ff0000", "#00ff00", "#0000ff", "#ffff00", "#00ffff", "#ff00ff"];
 Player.nextColor = 0;
 
@@ -231,6 +259,10 @@ Player.prototype = {
   },
 
   applyInput: function applyInput() {
+    if (this.spinning) {
+      return;
+    }
+
     var speed = this.getSpeed();
     if (this.keyState['forward'] && speed < Player.MAX_SPEED) {
       this.body.ApplyForce(this.getAngleVec(Player.ACCELERATION),
@@ -263,9 +295,38 @@ Player.prototype = {
     this.y = d.position.y * SCALE;
   },
 
-  fire: function() {
+  checkSpin: function checkSpin() {
+    if (this.spinning) {
+      if (this.spinEnd == 0) {
+        this.spinEnd = Date.now() + Player.SPIN_TIME;
+        // Start spinning
+        this.body.SetAngularVelocity(Math.PI * 8);
+        this.body.SetAngularDamping(0);
+        // Respawn
+        this.body.SetPosition(game.getRandomPosition());
+      }
+      else if (this.spinEnd < Date.now()) {
+        this.spinning = false;
+        this.spinEnd = 0;
+        this.body.SetAngularDamping(Infinity);
+        this.health = Player.HEALTH;
+      }
+    }
+  },
+
+  fire: function fire() {
     this.numShots++;
     spawnBullet(this);
+  },
+
+  hit: function hit() {
+    if (this.spinning) {
+      return;
+    }
+    this.health--;
+    if (this.health == 0) {
+      this.spinning = true;
+    }
   }
 };
 
