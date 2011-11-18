@@ -46,14 +46,15 @@ Canvas2DRenderer.prototype = {
     // Draw players
     for (i = 0; i < game.players.length; i++) {
       var p = game.players[i];
+      this.ctx.save();
+      this.ctx.translate(p.x, p.y);
+      this.ctx.rotate(p.body.GetAngle());
       this.ctx.fillStyle = p.color;
-      this.ctx.beginPath();
-      this.ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-      this.ctx.fill();
-      this.ctx.moveTo(p.x, p.y);
-      var v = p.getAngleVec(p.radius + 2);
-      this.ctx.lineTo(p.x + v.x, p.y + v.y);
-      this.ctx.stroke();
+      this.ctx.fillRect(-5, -15, 10, 30);
+      this.ctx.fillRect(-15, -15, 30, 10);
+      this.ctx.fillRect(-15, 5, 30, 10);
+      this.ctx.fillRect(0, -1, 18, 2);
+      this.ctx.restore();
     }
 
     // Draw bullets
