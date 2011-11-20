@@ -1,0 +1,27 @@
+#playfield {
+  display: inline-block;
+  width: 80%;
+}
+
+#scores {
+  display: inline-block;
+  vertical-align: top;
+  width: 10%;
+  height: 100%;
+}
+
+.score {
+  font: 72px 'SilkscreenNormal', Arial, sans-serif;
+  display: block;
+}
+
+@font-face {
+    font-family: 'SilkscreenNormal';
+    src: url('font/slkscr-webfont.eot');
+    src: url('font/slkscr-webfont.eot?#iefix') format('embedded-opentype'),
+         url('font/slkscr-webfont.woff') format('woff'),
+         url('font/slkscr-webfont.ttf') format('truetype'),
+         url('font/slkscr-webfont.svg#SilkscreenNormal') format('svg');
+    font-weight: normal;
+    font-style: normal;
+}

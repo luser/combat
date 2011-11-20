@@ -1,8 +1,7 @@
 function DebugRenderer(b2world, width, height) {
-  var d = document.createElement("div");
+  var d = document.getElementById("playfield");
   d.innerHTML = '<canvas width="'+width+'" height="'+height+'" style="background-color:#333333;"></canvas>';
   this.canvas = d.firstChild;
-  document.body.appendChild(d);
   this.b2world = b2world;
 
   var debugDraw = new b2DebugDraw();
@@ -23,11 +22,10 @@ DebugRenderer.prototype = {
 function Canvas2DRenderer(b2world, width, height) {
   this.width = width;
   this.height = height;
-  var d = document.createElement("div");
+  var d = document.getElementById("playfield");
   d.innerHTML = '<canvas width="'+width+'" height="'+height+'" style="background-color:#FFFFFF;"></canvas>';
   this.canvas = d.firstChild;
   this.ctx = this.canvas.getContext("2d");
-  document.body.appendChild(d);
 }
 
 Canvas2DRenderer.prototype = {

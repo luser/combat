@@ -118,9 +118,11 @@ Game.prototype = {
     bodyDef.angularDamping = Infinity;
     var body = world.CreateBody(bodyDef);
     var player = new Player(body, radius*SCALE, input);
+    player.id = Player.nextID++;
     body.CreateFixture(fixDef);
     body.SetUserData(player);
     this.players.push(player);
+    addToScoreboard(player);
     return player;
   },
 
@@ -180,10 +182,7 @@ Game.prototype = {
       }
       if (b instanceof Player) {
         a.dead = true;
-        b.hit();
-        if (a.owner != b) {
-          a.owner.score++;
-        }
+        b.hit(a.owner);
       }
     }
     if (b instanceof Bullet) {
@@ -193,10 +192,7 @@ Game.prototype = {
       }
       if (a instanceof Player) {
         b.dead = true;
-        a.hit();
-        if (b.owner != a) {
-          b.owner.score++;
-        }
+        a.hit(b.owner);
       }
     }
   }
@@ -230,6 +226,7 @@ Player.FIRE_COOLDOWN = 500; // milliseconds between shots
 Player.SPIN_TIME = 1500;
 Player.colors = ["#ff0000", "#00ff00", "#0000ff", "#ffff00", "#00ffff", "#ff00ff"];
 Player.nextColor = 0;
+Player.nextID = 0;
 
 Player.prototype = {
   toString: function toString() {
@@ -319,9 +316,13 @@ Player.prototype = {
     spawnBullet(this);
   },
 
-  hit: function hit() {
+  hit: function hit(other) {
     if (this.spinning) {
       return;
+    }
+    if (other != this) {
+      other.score++;
+      updateScore(other);
     }
     this.health--;
     if (this.health == 0) {
@@ -428,6 +429,22 @@ function addKeyboardPlayer(ev) {
   window.addEventListener("keyup", keyChange, true);
   game.addPlayer('key');
   document.body.removeChild(ev.target);
+}
+
+function addToScoreboard(player) {
+  var s = document.createElement("span");
+  s.setAttribute("id", "playerscore-" + player.id);
+  s.setAttribute("class", "score");
+  s.style.color = player.color;
+  s.appendChild(document.createTextNode("0"));
+
+  var scores = document.getElementById("scores");
+  scores.appendChild(s);
+}
+
+function updateScore(player) {
+  var s = document.getElementById("playerscore-" + player.id);
+  s.firstChild.textContent = player.score;
 }
 
 function gamepadConnected(ev) {
