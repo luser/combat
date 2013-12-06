@@ -252,7 +252,13 @@ Player.prototype = {
     this.keyState['back'] = (this.input.axes[1] - 0.1) > 0;
     this.keyState['left'] = (this.input.axes[0] + 0.1) < 0;
     this.keyState['right'] = (this.input.axes[0] - 0.1) > 0;
-    this.keyState['fire'] = this.input.buttons[0];
+    var val = this.input.buttons[0];
+    var pressed = val == 1.0;
+    if (typeof(val) == "object") {
+      pressed = val.pressed;
+      val = val.value;
+    }
+    this.keyState['fire'] = pressed;
   },
 
   applyInput: function applyInput() {
