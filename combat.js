@@ -228,6 +228,7 @@ function Player(body, radius, input) {
                   'right': false,
                   'fire': false};
   this.color = Player.colors[Player.nextColor++];
+  this.moveSound = null;
   this.syncPosition();
 }
 
@@ -278,19 +279,32 @@ Player.prototype = {
     }
 
     var speed = this.getSpeed();
+    var moving = false;
     if (this.keyState['forward'] && speed < Player.MAX_SPEED) {
       this.body.ApplyForce(this.getAngleVec(Player.ACCELERATION),
                            this.body.GetWorldCenter());
+      moving = true;
     }
     else if (this.keyState['back'] && speed < Player.MAX_SPEED) {
       this.body.ApplyForce(this.getAngleVec(-1 * Player.ACCELERATION),
                            this.body.GetWorldCenter());
+      moving = true;
     }
     if (this.keyState['left']) {
       this.body.SetAngle(this.body.GetAngle() - Math.PI/360);
+      moving = true;
     }
     else if (this.keyState['right']) {
       this.body.SetAngle(this.body.GetAngle() + Math.PI/360);
+      moving = true;
+    }
+
+    if (moving && !this.moveSound) {
+      this.moveSound = Sfx.play(Sfx.move, true);
+    }
+    if (!moving && this.moveSound) {
+      this.moveSound.stop();
+      this.moveSound = null;
     }
 
     if (this.keyState['fire']) {
@@ -331,6 +345,7 @@ Player.prototype = {
   fire: function fire() {
     this.numShots++;
     spawnBullet(this);
+    Sfx.play(Sfx.shoot);
   },
 
   hit: function hit(other) {
@@ -344,6 +359,7 @@ Player.prototype = {
     this.health--;
     if (this.health == 0) {
       this.spinning = true;
+      Sfx.play(Sfx.boom);
     }
   }
 };
