@@ -9,6 +9,10 @@ window.requestAnimFrame = (function(){
                   };
     })();
 
+if (!('getGamepads' in navigator) && 'webkitGetGamepads' in navigator) {
+  navigator.getGamepads = navigator.webkitGetGamepads;
+}
+
 // box2d world state
 var world;
 // game state
@@ -19,6 +23,7 @@ var players = [];
 var SCALE = 30;
 var WORLD_WIDTH = 640;
 var WORLD_HEIGHT = 480;
+var haveEvents = 'GamepadEvent' in window;
 
 var   b2Vec2 = Box2D.Common.Math.b2Vec2
 ,  b2AABB = Box2D.Collision.b2AABB
@@ -198,6 +203,15 @@ Game.prototype = {
   }
 };
 
+function anyButtonPressed(gamepad) {
+  return gamepad.buttons.some(function (b) {
+    if (typeof(b) == "object") {
+      return b.pressed;
+    }
+    return b > 0.5;
+  });
+}
+
 function Player(body, radius, input) {
   this.body = body;
   this.radius = radius;
@@ -248,17 +262,14 @@ Player.prototype = {
     if (this.input == 'key')
       return;
 
-    this.keyState['forward'] = (this.input.axes[1] + 0.1) < 0;
-    this.keyState['back'] = (this.input.axes[1] - 0.1) > 0;
-    this.keyState['left'] = (this.input.axes[0] + 0.1) < 0;
-    this.keyState['right'] = (this.input.axes[0] - 0.1) > 0;
-    var val = this.input.buttons[0];
-    var pressed = val == 1.0;
-    if (typeof(val) == "object") {
-      pressed = val.pressed;
-      val = val.value;
-    }
-    this.keyState['fire'] = pressed;
+    var gamepad = navigator.getGamepads()[this.input];
+
+    this.keyState['forward'] = (gamepad.axes[1] + 0.1) < 0;
+    this.keyState['back'] = (gamepad.axes[1] - 0.1) > 0;
+    this.keyState['left'] = (gamepad.axes[0] + 0.1) < 0;
+    this.keyState['right'] = (gamepad.axes[0] - 0.1) > 0;
+
+    this.keyState['fire'] = anyButtonPressed(gamepad);
   },
 
   applyInput: function applyInput() {
@@ -411,7 +422,29 @@ function init() {
   requestAnimFrame(update);
 }
 
+function scanForGamepads() {
+  var pads = navigator.getGamepads();
+  for (var i = 0; i < pads.length; i++) {
+    if (!pads[i])
+      continue;
+
+    var found = -1;
+    for (var j = 0; j < game.players.length; j++) {
+      if (game.players[j].input == pads[i].index) {
+        found = j;
+        break;
+      }
+    }
+    if (found == -1) {
+      game.addPlayer(i);
+    }
+  }
+}
+
 function update() {
+  if (!haveEvents) {
+    scanForGamepads();
+  }
   game.run();
   renderer.render(game);
   requestAnimFrame(update);
@@ -454,12 +487,12 @@ function updateScore(player) {
 }
 
 function gamepadConnected(ev) {
-  game.addPlayer(ev.gamepad);
+  game.addPlayer(ev.gamepad.index);
 }
 
 function gamepadDisconnected(ev) {
   for (var i = 0; i < game.players.length; i++) {
-    if (game.players[i].input == ev.gamepad) {
+    if (game.players[i].input == ev.gamepad.index) {
       game.removePlayer(i);
       break;
     }
