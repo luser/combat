@@ -53,6 +53,31 @@ Canvas2DRenderer.prototype = {
       this.ctx.fillRect(-15, 5, 30, 10);
       this.ctx.fillRect(0, -1, 18, 2);
       this.ctx.restore();
+
+      /*
+      if (p.input.id == "AI") {
+        this.ctx.save();
+        this.ctx.translate(p.x, p.y);
+        var ctx = this.ctx;
+        function drawAngle(angle, c) {
+          ctx.save();
+          ctx.rotate(angle);
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.strokeStyle = c;
+          ctx.lineTo(SCALE, 0);
+          ctx.stroke();
+          ctx.restore();
+        }
+        if (p.input.myAngle) {
+          drawAngle(p.input.myAngle, "red");
+        }
+        if (p.input.targetAngle) {
+          drawAngle(p.input.targetAngle, "green");
+        }
+        this.ctx.restore();
+      }
+       */
     }
 
     // Draw bullets
