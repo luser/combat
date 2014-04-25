@@ -626,3 +626,4 @@ function gamepadDisconnected(ev) {
 window.addEventListener("load", init, true);
 window.addEventListener("gamepadconnected", gamepadConnected, true);
 window.addEventListener("gamepaddisconnected", gamepadDisconnected, true);
+console.log("If you're here and bored, try:\ngame.addPlayer(new AI())\n");
