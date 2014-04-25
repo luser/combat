@@ -260,10 +260,7 @@ Player.prototype = {
   },
 
   checkInput: function checkInput() {
-    if (this.input == 'key')
-      return;
-
-    var gamepad = navigator.getGamepads()[this.input];
+    var gamepad = this.input.getInput();
 
     this.keyState['forward'] = (gamepad.axes[1] + 0.1) < 0;
     this.keyState['back'] = (gamepad.axes[1] - 0.1) > 0;
@@ -466,23 +463,44 @@ function update() {
   requestAnimFrame(update);
 }
 
-function keyChange(ev) {
-  var maps = {
-    32: 'fire',
-    37: 'left',
-    38: 'forward',
-    39: 'right',
-    40: 'back'
+function KeyInput() {
+  this.id = 'keyboard';
+  var axes = [0.0, 0.0];
+  var buttons = [{pressed: false, value: 0.0}];
+  var pad = {buttons: buttons, axes: axes};
+  this.getInput = function() {
+    return pad;
   };
-  if (ev.keyCode in maps) {
-    game.keyInput(maps[ev.keyCode], ev.type == "keydown");
+
+  function keyChange(ev) {
+    var pressed = ev.type == "keydown";
+    if (ev.keyCode == 32) {
+      // Space is fire.
+      buttons[0].pressed = pressed;
+      buttons[0].value = buttons[0].pressed ? 1.0 : 0.0;
+    }
+    var maps = {
+      37: [0, -1.0], // left arrow = left
+      38: [1, -1.0], // up arrow = forward
+      39: [0, 1.0],  // right arrow = right
+      40: [1, 1.0]   // down arrow = back
+    };
+    if (ev.keyCode in maps) {
+      var m = maps[ev.keyCode];
+      var axis = m[0], val = m[1];
+      if (pressed) {
+        axes[axis] = val;
+      } else if (axes[axis] == val) {
+        axes[axis] = 0.0;
+      }
+    }
   }
+  window.addEventListener("keydown", keyChange, true);
+  window.addEventListener("keyup", keyChange, true);
 }
 
 function addKeyboardPlayer(ev) {
-  window.addEventListener("keydown", keyChange, true);
-  window.addEventListener("keyup", keyChange, true);
-  game.addPlayer('key');
+  game.addPlayer(new KeyInput());
   document.body.removeChild(ev.target);
 }
 
@@ -503,12 +521,15 @@ function updateScore(player) {
 }
 
 function gamepadConnected(ev) {
-  game.addPlayer(ev.gamepad.index);
+  game.addPlayer({id: ev.gamepad.index,
+                 getInput: function() {
+                   return navigator.getGamepads()[this.id];
+                 }});
 }
 
 function gamepadDisconnected(ev) {
   for (var i = 0; i < game.players.length; i++) {
-    if (game.players[i].input == ev.gamepad.index) {
+    if (game.players[i].input.id == ev.gamepad.index) {
       game.removePlayer(i);
       break;
     }
