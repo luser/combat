@@ -29,6 +29,9 @@ function Canvas2DRenderer(b2world, width, height) {
   d.innerHTML = '<canvas width="'+width+'" height="'+height+'" style="background-color:#FFFFFF;"></canvas>';
   this.canvas = d.firstChild;
   this.ctx = this.canvas.getContext("2d");
+  this.ctx.font = "18px 'SilkscreenNormal', Arial, sans-serif";
+  this.ctx.textBaseline = "alphabetic";
+  this.ctx.textAlign = "center";
 }
 
 Canvas2DRenderer.prototype = {
@@ -37,6 +40,13 @@ Canvas2DRenderer.prototype = {
     this.ctx.clearRect(0, 0, this.width, this.height);
     // Draw walls
     this.ctx.strokeRect(0, 0, this.width, this.height);
+
+    if (game.players.length == 0) {
+      this.ctx.font = "32px 'SilkscreenNormal', Arial, sans-serif";
+      this.ctx.fillText("PRESS A GAMEPAD BUTTON", this.width/2, this.height/2 - 20);
+      this.ctx.fillText("OR SPACE TO START", this.width/2, this.height/2 + 20);
+      return;
+    }
 
     // Draw blocks
     for (var i = 0; i < game.blocks.length; i++) {
@@ -74,8 +84,6 @@ Canvas2DRenderer.prototype = {
         this.ctx.fillStyle = flash ? "yellow" : p.color;
         this.ctx.fill();
         this.ctx.font = "18px 'SilkscreenNormal', Arial, sans-serif";
-        this.ctx.textBaseline = "alphabetic";
-        this.ctx.textAlign = "center";
         this.ctx.fillText(p.input.name, 0, y - 20);
         this.ctx.restore();
       }
