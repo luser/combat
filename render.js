@@ -19,6 +19,9 @@ DebugRenderer.prototype = {
   }
 };
 
+const BLINK_TIME = 2000;
+const BLINK_RATE = 100;
+const FLASH_RATE = 30;
 function Canvas2DRenderer(b2world, width, height) {
   this.width = width;
   this.height = height;
@@ -30,6 +33,7 @@ function Canvas2DRenderer(b2world, width, height) {
 
 Canvas2DRenderer.prototype = {
   render: function(game) {
+    var now = Date.now();
     this.ctx.clearRect(0, 0, this.width, this.height);
     // Draw walls
     this.ctx.strokeRect(0, 0, this.width, this.height);
@@ -44,15 +48,37 @@ Canvas2DRenderer.prototype = {
     // Draw players
     for (i = 0; i < game.players.length; i++) {
       var p = game.players[i];
-      this.ctx.save();
-      this.ctx.translate(p.x, p.y);
-      this.ctx.rotate(p.body.GetAngle());
-      this.ctx.fillStyle = p.color;
-      this.ctx.fillRect(-5, -15, 10, 30);
-      this.ctx.fillRect(-15, -15, 30, 10);
-      this.ctx.fillRect(-15, 5, 30, 10);
-      this.ctx.fillRect(0, -1, 18, 2);
-      this.ctx.restore();
+      var fresh = p.added + BLINK_TIME > now;
+      var blink = (Math.floor((now - p.added)/BLINK_RATE)%2) == 0;
+      if (!fresh || blink) {
+        this.ctx.save();
+        this.ctx.translate(p.x, p.y);
+        this.ctx.rotate(p.body.GetAngle());
+        this.ctx.fillStyle = p.color;
+        this.ctx.fillRect(-5, -15, 10, 30);
+        this.ctx.fillRect(-15, -15, 30, 10);
+        this.ctx.fillRect(-15, 5, 30, 10);
+        this.ctx.fillRect(0, -1, 18, 2);
+        this.ctx.restore();
+      }
+      if (fresh) {
+        var flash = (Math.floor((now - p.added)/FLASH_RATE)%2) == 0;
+        this.ctx.save();
+        this.ctx.translate(p.x, p.y);
+        this.ctx.beginPath();
+        var y = -1 * p.body.GetFixtureList().GetShape().GetRadius() * SCALE - 10;
+        this.ctx.moveTo(0, y);
+        this.ctx.lineTo(10, y - 10);
+        this.ctx.lineTo(-10, y - 10);
+        this.ctx.closePath();
+        this.ctx.fillStyle = flash ? "yellow" : p.color;
+        this.ctx.fill();
+        this.ctx.font = "18px 'SilkscreenNormal', Arial, sans-serif";
+        this.ctx.textBaseline = "alphabetic";
+        this.ctx.textAlign = "center";
+        this.ctx.fillText(p.input.name, 0, y - 20);
+        this.ctx.restore();
+      }
 
       /*
       if (p.input.id == "AI") {
@@ -82,7 +108,7 @@ Canvas2DRenderer.prototype = {
 
     // Draw bullets
     for (i = 0; i < game.bullets.length; i++) {
-      var b = game.bullets[i];
+      b = game.bullets[i];
       this.ctx.fillStyle = "black";
       this.ctx.beginPath();
       this.ctx.arc(b.x, b.y, 3, 0, Math.PI * 2);

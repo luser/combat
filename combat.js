@@ -216,6 +216,7 @@ function anyButtonPressed(gamepad) {
 }
 
 function Player(body, radius, input) {
+  this.added = Date.now();
   this.body = body;
   this.radius = radius;
   this.input = input;
@@ -426,7 +427,8 @@ function randint(min, max) {
 
 function AI() {
   var self = this;
-  this.id = "AI";
+  this.id = 'AI';
+  this.name = 'CPU';
   var pad = {buttons: [{pressed: false, value: 0.0}],
              axes: [0.0, 0.0]};
   var target = null;
@@ -530,13 +532,13 @@ function scanForGamepads() {
 
     var found = -1;
     for (var j = 0; j < game.players.length; j++) {
-      if (game.players[j].input == pads[i].index) {
+      if (game.players[j].input.id == pads[i].index) {
         found = j;
         break;
       }
     }
     if (found == -1) {
-      game.addPlayer(i);
+      game.addPlayer(new GamepadInput(pads[i]));
     }
   }
 }
@@ -552,6 +554,7 @@ function update() {
 
 function KeyInput() {
   this.id = 'keyboard';
+  this.name = 'Keyboard';
   var axes = [0.0, 0.0];
   var buttons = [{pressed: false, value: 0.0}];
   var pad = {buttons: buttons, axes: axes};
@@ -586,6 +589,14 @@ function KeyInput() {
   window.addEventListener("keyup", keyChange, true);
 }
 
+function GamepadInput(gamepad) {
+  this.id = gamepad.index;
+  this.name = 'Gamepad ' + (gamepad.index+1);
+  this.getInput = function() {
+    return navigator.getGamepads()[this.id];
+  };
+}
+
 function addKeyboardPlayer(ev) {
   game.addPlayer(new KeyInput());
   document.body.removeChild(ev.target);
@@ -608,10 +619,7 @@ function updateScore(player) {
 }
 
 function gamepadConnected(ev) {
-  game.addPlayer({id: ev.gamepad.index,
-                 getInput: function() {
-                   return navigator.getGamepads()[this.id];
-                 }});
+  game.addPlayer(new GamepadInput(ev.gamepad));
 }
 
 function gamepadDisconnected(ev) {
