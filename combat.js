@@ -565,6 +565,7 @@ function KeyInput() {
   function keyChange(ev) {
     var pressed = ev.type == "keydown";
     if (ev.keyCode == 32) {
+      ev.preventDefault();
       // Space is fire.
       buttons[0].pressed = pressed;
       buttons[0].value = buttons[0].pressed ? 1.0 : 0.0;
@@ -576,6 +577,7 @@ function KeyInput() {
       40: [1, 1.0]   // down arrow = back
     };
     if (ev.keyCode in maps) {
+      ev.preventDefault();
       var m = maps[ev.keyCode];
       var axis = m[0], val = m[1];
       if (pressed) {
@@ -597,9 +599,8 @@ function GamepadInput(gamepad) {
   };
 }
 
-function addKeyboardPlayer(ev) {
+function addKeyboardPlayer() {
   game.addPlayer(new KeyInput());
-  document.body.removeChild(ev.target);
 }
 
 function addToScoreboard(player) {
@@ -631,7 +632,16 @@ function gamepadDisconnected(ev) {
   }
 }
 
+function gotKey(ev) {
+  if (ev.keyCode == 32) {
+    addKeyboardPlayer();
+    window.removeEventListener("keydown", gotKey, true);
+    ev.preventDefault();
+  }
+}
+
 window.addEventListener("load", init, true);
 window.addEventListener("gamepadconnected", gamepadConnected, true);
 window.addEventListener("gamepaddisconnected", gamepadDisconnected, true);
+window.addEventListener("keydown", gotKey, true);
 console.log("If you're here and bored, try:\ngame.addPlayer(new AI())\n");
