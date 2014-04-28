@@ -13,6 +13,16 @@ if (!('getGamepads' in navigator) && 'webkitGetGamepads' in navigator) {
   navigator.getGamepads = navigator.webkitGetGamepads;
 }
 
+if (!('slice' in Array)) {
+  Array.slice = function (a, start, end) {
+    var r = [];
+    for (var i = start; i < end; i++) {
+      r.push(a[i]);
+    }
+    return r;
+  };
+}
+
 // box2d world state
 var world;
 // game state
