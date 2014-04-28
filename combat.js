@@ -33,6 +33,7 @@ var renderer;
 var SCALE = 30;
 var WORLD_SIZE = 600;
 var haveEvents = 'GamepadEvent' in window;
+var haveGamepad = 'getGamepads' in navigator || 'webkitGetGamepads' in navigator;
 
 var   b2Vec2 = Box2D.Common.Math.b2Vec2
 ,  b2AABB = Box2D.Collision.b2AABB
@@ -599,7 +600,7 @@ function scanForGamepads() {
 }
 
 function update() {
-  if (!haveEvents) {
+  if (!haveEvents && haveGamepad) {
     scanForGamepads();
   }
   game.run();
