@@ -22,11 +22,13 @@ DebugRenderer.prototype = {
 const BLINK_TIME = 2000;
 const BLINK_RATE = 100;
 const FLASH_RATE = 30;
-function Canvas2DRenderer(b2world, width, height) {
+function Canvas2DRenderer(b2world, width, height, background) {
   this.width = width;
   this.height = height;
   var d = document.getElementById("playfield");
-  d.innerHTML = '<canvas width="'+width+'" height="'+height+'" style="background-color:#FFFFFF;"></canvas>';
+  d.innerHTML = '<canvas width="'+width+'" height="'+height+'" style="background-color:"' + background + '";"></canvas>';
+  this.background = background;
+  this.bulletColor = background == 'rgb(255,255,255)' ? 'black' : 'white';
   this.canvas = d.firstChild;
   this.ctx = this.canvas.getContext("2d");
   this.ctx.font = "18px 'SilkscreenNormal', Arial, sans-serif";
@@ -37,12 +39,14 @@ function Canvas2DRenderer(b2world, width, height) {
 Canvas2DRenderer.prototype = {
   render: function(game) {
     var now = Date.now();
-    this.ctx.clearRect(0, 0, this.width, this.height);
+    this.ctx.fillStyle = this.background;
+    this.ctx.fillRect(0, 0, this.width, this.height);
     // Draw walls
     this.ctx.strokeRect(0, 0, this.width, this.height);
 
     if (game.players.length == 0) {
       this.ctx.font = "32px 'SilkscreenNormal', Arial, sans-serif";
+      this.ctx.fillStyle = '#404040';
       this.ctx.fillText("PRESS A GAMEPAD BUTTON", this.width/2, this.height/2 - 20);
       this.ctx.fillText("OR SPACE TO START", this.width/2, this.height/2 + 20);
       return;
@@ -117,10 +121,8 @@ Canvas2DRenderer.prototype = {
     // Draw bullets
     for (i = 0; i < game.bullets.length; i++) {
       b = game.bullets[i];
-      this.ctx.fillStyle = "black";
-      this.ctx.beginPath();
-      this.ctx.arc(b.x, b.y, 3, 0, Math.PI * 2);
-      this.ctx.fill();
+      this.ctx.fillStyle = this.bulletColor;
+      this.ctx.fillRect(b.x-3, b.y-3, 6, 6);
     }
   }
 };
