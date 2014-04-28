@@ -1,4 +1,4 @@
-window.requestAnimFrame = (function(){
+var requestAnimFrame = (function(){
           return  window.requestAnimationFrame       ||
                   window.webkitRequestAnimationFrame ||
                   window.mozRequestAnimationFrame    ||
@@ -17,9 +17,9 @@ if (!('getGamepads' in navigator) && 'webkitGetGamepads' in navigator) {
 var world;
 // game state
 var game;
+var inited = false;
 // rendering backend
 var renderer;
-var players = [];
 var SCALE = 30;
 var WORLD_SIZE = 600;
 var haveEvents = 'GamepadEvent' in window;
@@ -69,6 +69,7 @@ Game.prototype = {
     var y = opts.y || 0;
     var width = opts.width || 10;
     var height = opts.height || 10;
+    var color = opts.color || '#000000';
     // positions the center of the object (not upper left!)
     bodyDef.position.x = (x + width/2) / SCALE;
     bodyDef.position.y = (y + height/2) / SCALE;
@@ -76,7 +77,7 @@ Game.prototype = {
     fixDef.shape = new b2PolygonShape;
     fixDef.shape.SetAsBox((width/2) / SCALE, (height/2) / SCALE);
     this.world.CreateBody(bodyDef).CreateFixture(fixDef);
-    this.blocks.push(new Block(x, y, width, height));
+    this.blocks.push(new Block(x, y, width, height, color));
   },
 
   addWalls: function addWalls() {
@@ -230,7 +231,10 @@ function Player(body, radius, input) {
                   'left': false,
                   'right': false,
                   'fire': false};
-  this.color = Player.colors[Player.nextColor++];
+  do {
+    this.color = Player.colors[Player.nextColor % Player.colors.length];
+    Player.nextColor++;
+  } while (this.color == renderer.background);
   this.moveSound = null;
   this.syncPosition();
 }
@@ -242,7 +246,7 @@ Player.MAX_SPEED = 5;
 Player.MAX_SHOTS = 3; // number of shots in play per-player
 Player.FIRE_COOLDOWN = 500; // milliseconds between shots
 Player.SPIN_TIME = 1500;
-Player.colors = ["#ff0000", "#00ff00", "#0000ff", "#ffff00", "#00ffff", "#ff00ff"];
+Player.colors = ["rgb(136,0,0)", "rgb(0,136,0)", "rgb(0,0,136)", "rgb(136,136,0)", "rgb(0,136,136)", "rgb(136,0,136)"];
 Player.nextColor = 0;
 Player.nextID = 0;
 
@@ -505,6 +509,39 @@ function AI() {
   };
 }
 
+function getBoard() {
+  var c = document.createElement('canvas');
+  var i = document.getElementById('board');
+  c.width = i.width;
+  c.height = i.height;
+  var cx = c.getContext('2d');
+  cx.width = i.width;
+  cx.height = i.height;;
+  cx.drawImage(i, 0, 0, i.width, i.height);
+  return cx.getImageData(0, 0, i.width, i.height);
+}
+
+function getColor(data, i) {
+  return 'rgb(' + Array.slice(data, i*4, i*4 + 3).join(',') + ')';;
+}
+
+function addBoxes(board) {
+  // Stupid right now, just draw one box per pixel in the image.
+  const PIXEL_SIZE = WORLD_SIZE / board.width;
+  const size = Math.round(PIXEL_SIZE);
+  var data = new Uint32Array(board.data.buffer);
+  var bg = data[0];
+  for (var i = 1; i < data.length; i++) {
+    if (data[i] != bg) {
+      var color = getColor(board.data, i);
+      var x = (i % board.width) * PIXEL_SIZE;
+      var y = Math.floor(i / board.width) * PIXEL_SIZE;
+      game.addStaticBox({width: PIXEL_SIZE, height: PIXEL_SIZE, x: x, y: y,
+                         color: color});
+    }
+  }
+}
+
 function resize() {
   var p = document.getElementById("playfield");
   WORLD_SIZE = Math.min(p.offsetWidth, p.offsetHeight);
@@ -517,16 +554,19 @@ function init() {
   game = new Game(world, WORLD_SIZE, WORLD_SIZE);
   game.addWalls();
 
-  // add some random boxes for variety
-  for (var i = 0; i < 5; i++) {
-    game.addStaticBox({width: 30, height: 30, x: Math.floor(Math.random()*(WORLD_SIZE - 30)), y: Math.floor(Math.random()*(WORLD_SIZE - 30))});
-  }
+  // draw the game board
+  var board = getBoard();
+  addBoxes(board);
 
   renderer =
     //new DebugRenderer(world, WORLD_SIZE, WORLD_SIZE);
-    new Canvas2DRenderer(world, WORLD_SIZE, WORLD_SIZE);
+    new Canvas2DRenderer(world, WORLD_SIZE, WORLD_SIZE,
+                         getColor(board.data, 0));
 
-  requestAnimFrame(update);
+  if (!inited) {
+    requestAnimFrame(update);
+    inited = true;
+  }
 }
 
 function scanForGamepads() {
@@ -645,8 +685,51 @@ function gotKey(ev) {
   }
 }
 
+function dropAllowed(ev) {
+  if (Array.some(ev.dataTransfer.types, function(x) { return x == "Files";})) {
+    ev.preventDefault();
+  }
+}
+
+function handleDrop(ev) {
+  if (ev.dataTransfer.files.length == 0) {
+    return;
+  }
+  var f = ev.dataTransfer.files[0];
+  if (!f.type.match(/^image\//)) {
+    return;
+  }
+  ev.preventDefault();
+  var b = document.getElementById('board');
+  b.onload = reset;
+  b.src = URL.createObjectURL(f);
+}
+
+function reset() {
+  var players = game.players;
+  for (var i = 0; i < players.length; i++) {
+    if (players[i].moveSound) {
+      players[i].moveSound.stop();
+    }
+  }
+  Player.nextID = 0;
+  Player.nextColor = 0;
+  document.getElementById("scores").innerHTML = '';
+  init();
+  for (i = 0; i < players.length; i++) {
+    if (players[i].input.id != 'AI') {
+      game.addPlayer(players[i].input);
+    }
+  }
+}
+
 window.addEventListener("load", init, true);
 window.addEventListener("gamepadconnected", gamepadConnected, true);
 window.addEventListener("gamepaddisconnected", gamepadDisconnected, true);
 window.addEventListener("keydown", gotKey, true);
+window.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('playfield').addEventListener('dragover', dropAllowed);
+  document.getElementById('playfield').addEventListener('dragenter', dropAllowed);
+  document.getElementById('playfield').addEventListener('drop', handleDrop);
+}, true);
 console.log("If you're here and bored, try:\ngame.addPlayer(new AI())\n");
