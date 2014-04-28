@@ -21,8 +21,7 @@ var game;
 var renderer;
 var players = [];
 var SCALE = 30;
-var WORLD_WIDTH = 640;
-var WORLD_HEIGHT = 480;
+var WORLD_SIZE = 600;
 var haveEvents = 'GamepadEvent' in window;
 
 var   b2Vec2 = Box2D.Common.Math.b2Vec2
@@ -506,20 +505,26 @@ function AI() {
   };
 }
 
+function resize() {
+  var p = document.getElementById("playfield");
+  WORLD_SIZE = Math.min(p.offsetWidth, p.offsetHeight);
+}
+
 function init() {
   world = new b2World(new b2Vec2(0, 0),    // no gravity
                       true);                 //allow sleep
-  game = new Game(world, WORLD_WIDTH, WORLD_HEIGHT);
+  resize();
+  game = new Game(world, WORLD_SIZE, WORLD_SIZE);
   game.addWalls();
 
   // add some random boxes for variety
   for (var i = 0; i < 5; i++) {
-    game.addStaticBox({width: 30, height: 30, x: Math.floor(Math.random()*(WORLD_WIDTH - 30)), y: Math.floor(Math.random()*(WORLD_HEIGHT - 30))});
+    game.addStaticBox({width: 30, height: 30, x: Math.floor(Math.random()*(WORLD_SIZE - 30)), y: Math.floor(Math.random()*(WORLD_SIZE - 30))});
   }
 
   renderer =
-    //new DebugRenderer(world, WORLD_WIDTH, WORLD_HEIGHT);
-    new Canvas2DRenderer(world, WORLD_WIDTH, WORLD_HEIGHT);
+    //new DebugRenderer(world, WORLD_SIZE, WORLD_SIZE);
+    new Canvas2DRenderer(world, WORLD_SIZE, WORLD_SIZE);
 
   requestAnimFrame(update);
 }
