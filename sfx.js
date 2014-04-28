@@ -51,7 +51,7 @@ Sfx.audioInit = function()
 {
     if (window.AudioContext) {
         Sfx.ac = new AudioContext();
-    } else if (webkitAudioContext) {
+    } else if (window.webkitAudioContext) {
         Sfx.ac = new webkitAudioContext();
     } else {
         console.log("Sorry, no Web Audio API in this browser.");
