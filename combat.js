@@ -742,5 +742,8 @@ window.addEventListener('DOMContentLoaded', function() {
   document.getElementById('playfield').addEventListener('dragover', dropAllowed);
   document.getElementById('playfield').addEventListener('dragenter', dropAllowed);
   document.getElementById('playfield').addEventListener('drop', handleDrop);
+  if (is_ios) {
+    document.getElementById('ios').style.display = '';
+  }
 }, true);
 console.log("If you're here and bored, try:\ngame.addPlayer(new AI())\n");

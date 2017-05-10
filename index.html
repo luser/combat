@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, user-scalable=no">
 <title>COMBAT</title>
+<script type="text/javascript">
+var is_ios = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+</script>
 <script type="text/javascript" src="Box2dWeb-2.1.a.3.min.js"></script>
 <script type="text/javascript" src="render.js"></script>
 <script type="text/javascript" src="sfx.js"></script>
@@ -15,6 +18,7 @@
 <div id="sidebar">
 <div id="scores"></div>
 <div id="info">By <a href="http://ted.mielczarek.org/">Ted</a>&mdash;<a href="https://twitter.com/TedMielczarek">@TedMielczarek</a>. <a href="https://github.com/luser/combat">Github project</a></div>
+<div id="ios" style="display:none">Touch to enable sound on iOS</div>
 </div>
 <img id="board" src="board.png" style="display:none">
 </body>

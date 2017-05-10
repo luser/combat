@@ -90,3 +90,17 @@ Sfx.play = function(buffer, loop) {
 };
 
 window.addEventListener('load', Sfx.audioInit, false);
+
+function enableAudioiOS() {
+  window.removeEventListener('touchstart', enableAudioiOS, false);
+  document.getElementById('ios').style.display = 'none';
+  // create empty buffer
+  var buffer = Sfx.ac.createBuffer(1, 1, 22050);
+  var source = Sfx.ac.createBufferSource();
+  source.buffer = buffer;
+  source.connect(Sfx.ac.destination);
+  source.noteOn(0);
+}
+if (is_ios) {
+  window.addEventListener('touchstart', enableAudioiOS, false);
+}
